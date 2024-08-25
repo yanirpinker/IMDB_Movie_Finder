@@ -107,7 +107,9 @@ if top_movies:
         poster_path = movie['poster_path']
         if poster_path:
             st.image(f"https://image.tmdb.org/t/p/w500{poster_path}", width=150)
-        st.write(f"**IMDb Rating:** {movie['vote_average']}")
+        # Ensure the rating is displayed correctly
+        rating = movie.get('vote_average', 'N/A')
+        st.write(f"**TMDb Rating:** {rating}")
         st.write(f"**Overview:** {movie['overview']}")
         youtube_search_url = f"https://www.youtube.com/results?search_query={movie['title']}+trailer"
         st.write(f"[Watch Trailer on YouTube]({youtube_search_url})")
