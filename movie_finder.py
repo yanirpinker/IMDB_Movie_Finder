@@ -1,12 +1,8 @@
 import streamlit as st
-import pandas as pd
+import requests
 
-# Load the dataset
-df = pd.read_csv('imdb_top_1000.csv')
-
-# Ensure correct data types
-df['Released_Year'] = pd.to_numeric(df['Released_Year'], errors='coerce')
-df['IMDB_Rating'] = pd.to_numeric(df['IMDB_Rating'], errors='coerce')
+# Your OMDb API key
+api_key = '2f2ea8fd'
 
 # Define Monday.com-style colors
 monday_bg_color = "#F6F8FA"
@@ -45,6 +41,15 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Function to fetch movie data from OMDb API
+def fetch_movie_data(title, year, api_key):
+    url = f"http://www.omdbapi.com/?t={title}&y={year}&apikey={api_key}"
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.json()
+    else:
+        return None
+
 # Streamlit UI components with enhanced style
 st.title("🎬 Find Your Next Movie")
 
@@ -54,45 +59,45 @@ st.subheader("Specify Your Preferences")
 year_range = st.slider('Select Release Year Range:', 1920, 2024, (2020, 2024))
 
 # 2. Genre (Mandatory)
-genres = sorted(set([g.strip() for sublist in df['Genre'].str.split(',').tolist() for g in sublist]))
+genres = ["Action", "Comedy", "Drama", "Fantasy", "Horror", "Romance", "Sci-Fi", "Thriller"]  # You can modify this list based on your preference
 selected_genres = st.multiselect('Select Genre(s):', genres)
 
 # 3. IMDb Rating (Mandatory)
 rating_range = st.slider('Select IMDb Rating Range:', 7.0, 10.0, (7.0, 10.0))
 
 # 4. Star (Optional)
-stars = sorted(df['Star1'].unique())
-selected_stars = st.multiselect('Select Star(s) (optional):', stars)
+selected_stars = st.text_input('Enter a Star Name (optional):')
 
-# Filter the dataset based on user inputs
-filtered_df = df[(df['Released_Year'] >= year_range[0]) & (df['Released_Year'] <= year_range[1])]
-filtered_df = filtered_df[filtered_df['IMDB_Rating'].between(rating_range[0], rating_range[1])]
-
-if selected_genres:
-    filtered_df = filtered_df[filtered_df['Genre'].apply(lambda x: any(g in x for g in selected_genres))]
-
-if selected_stars:
-    filtered_df = filtered_df[filtered_df['Star1'].isin(selected_stars) | 
-                              filtered_df['Star2'].isin(selected_stars) | 
-                              filtered_df['Star3'].isin(selected_stars) | 
-                              filtered_df['Star4'].isin(selected_stars)]
-
-# Ensure the column exists and then get top 3 movies by rating
-if 'IMDB_Rating' in filtered_df.columns and not filtered_df.empty:
-    top_movies = filtered_df.nlargest(3, 'IMDB_Rating')
-else:
-    top_movies = pd.DataFrame()  # Empty DataFrame if no movies match the criteria
+# Collecting movie data from API
+top_movies = []
+for genre in selected_genres:
+    for year in range(year_range[0], year_range[1] + 1):
+        # Using the genre as the title search parameter (as an example)
+        movie_data = fetch_movie_data(genre, year, api_key)
+        if movie_data and 'imdbRating' in movie_data and float(movie_data['imdbRating']) >= rating_range[0]:
+            # Check if the selected star is in the movie
+            if selected_stars:
+                if selected_stars.lower() in movie_data['Actors'].lower():
+                    top_movies.append(movie_data)
+            else:
+                top_movies.append(movie_data)
+            if len(top_movies) >= 3:
+                break
+    if len(top_movies) >= 3:
+        break
 
 # Display the results
-if not top_movies.empty:
+if top_movies:
     st.write(f"### Top {len(top_movies)} Movies Matching Your Criteria")
-    for _, row in top_movies.iterrows():
-        st.subheader(f"{row['Series_Title']} ({row['Released_Year']})")
-        st.image(row['Poster_Link'], width=150)
-        st.write(f"**IMDb Rating:** {row['IMDB_Rating']}")
-        st.write(f"**Genre:** {row['Genre']}")
-        st.write(f"**Director:** {row['Director']}")
-        st.write(f"**Stars:** {row['Star1']}, {row['Star2']}, {row['Star3']}, {row['Star4']}")
+    for movie in top_movies:
+        st.subheader(f"{movie['Title']} ({movie['Year']})")
+        st.image(movie['Poster'], width=150)
+        st.write(f"**IMDb Rating:** {movie['imdbRating']}")
+        st.write(f"**Genre:** {movie['Genre']}")
+        st.write(f"**Director:** {movie['Director']}")
+        st.write(f"**Stars:** {movie['Actors']}")
+        youtube_search_url = f"https://www.youtube.com/results?search_query={movie['Title']}+trailer"
+        st.write(f"[Watch Trailer on YouTube]({youtube_search_url})")
         st.write("---")
 else:
     st.write("No movies found matching your criteria.")
