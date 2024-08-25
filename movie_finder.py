@@ -4,12 +4,51 @@ import pandas as pd
 # Load the dataset
 df = pd.read_csv('imdb_top_1000.csv')
 
-# Convert year and rating columns to numeric
+# Ensure correct data types
 df['Released_Year'] = pd.to_numeric(df['Released_Year'], errors='coerce')
 df['IMDB_Rating'] = pd.to_numeric(df['IMDB_Rating'], errors='coerce')
 
-# Streamlit UI components
-st.title("Find Your Movie")
+# Define Monday.com-style colors
+monday_bg_color = "#F6F8FA"
+monday_primary_color = "#0073E6"
+monday_secondary_color = "#4B4B4B"
+
+# Apply Monday.com-style UI
+st.markdown(
+    f"""
+    <style>
+    .stApp {{
+        background-color: {monday_bg_color};
+    }}
+    .stSlider > div {{
+        color: {monday_primary_color};
+    }}
+    .stCheckbox > div {{
+        color: {monday_primary_color};
+    }}
+    .stButton > button {{
+        background-color: {monday_primary_color};
+        color: white;
+        border-radius: 12px;
+        padding: 10px 20px;
+        border: none;
+        font-size: 16px;
+    }}
+    .stButton > button:hover {{
+        background-color: {monday_secondary_color};
+    }}
+    .stSelectbox > div, .stMultiSelect > div {{
+        color: {monday_primary_color};
+    }}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# Streamlit UI components with enhanced style
+st.title("🎬 Find Your Next Movie")
+
+st.subheader("Specify Your Preferences")
 
 # 1. Release Year (Mandatory)
 year_range = st.slider('Select Release Year Range:', 1920, 2024, (2020, 2024))
@@ -38,8 +77,11 @@ if selected_stars:
                               filtered_df['Star3'].isin(selected_stars) | 
                               filtered_df['Star4'].isin(selected_stars)]
 
-# Get top 3 movies
-top_movies = filtered_df.nlargest(3, 'IMDB_Rating')
+# Ensure the column exists and then get top 3 movies by rating
+if 'IMDB_Rating' in filtered_df.columns and not filtered_df.empty:
+    top_movies = filtered_df.nlargest(3, 'IMDB_Rating')
+else:
+    top_movies = pd.DataFrame()  # Empty DataFrame if no movies match the criteria
 
 # Display the results
 if not top_movies.empty:
