@@ -1,0 +1,56 @@
+import streamlit as st
+import pandas as pd
+
+# Load the dataset
+df = pd.read_csv('imdb_top_1000.csv')
+
+# Convert year and rating columns to numeric
+df['Released_Year'] = pd.to_numeric(df['Released_Year'], errors='coerce')
+df['IMDB_Rating'] = pd.to_numeric(df['IMDB_Rating'], errors='coerce')
+
+# Streamlit UI components
+st.title("Find Your Movie")
+
+# 1. Release Year (Mandatory)
+year_range = st.slider('Select Release Year Range:', 1920, 2024, (2020, 2024))
+
+# 2. Genre (Mandatory)
+genres = sorted(set([g.strip() for sublist in df['Genre'].str.split(',').tolist() for g in sublist]))
+selected_genres = st.multiselect('Select Genre(s):', genres)
+
+# 3. IMDb Rating (Mandatory)
+rating_range = st.slider('Select IMDb Rating Range:', 7.0, 10.0, (7.0, 10.0))
+
+# 4. Star (Optional)
+stars = sorted(df['Star1'].unique())
+selected_stars = st.multiselect('Select Star(s) (optional):', stars)
+
+# Filter the dataset based on user inputs
+filtered_df = df[(df['Released_Year'] >= year_range[0]) & (df['Released_Year'] <= year_range[1])]
+filtered_df = filtered_df[filtered_df['IMDB_Rating'].between(rating_range[0], rating_range[1])]
+
+if selected_genres:
+    filtered_df = filtered_df[filtered_df['Genre'].apply(lambda x: any(g in x for g in selected_genres))]
+
+if selected_stars:
+    filtered_df = filtered_df[filtered_df['Star1'].isin(selected_stars) | 
+                              filtered_df['Star2'].isin(selected_stars) | 
+                              filtered_df['Star3'].isin(selected_stars) | 
+                              filtered_df['Star4'].isin(selected_stars)]
+
+# Get top 3 movies
+top_movies = filtered_df.nlargest(3, 'IMDB_Rating')
+
+# Display the results
+if not top_movies.empty:
+    st.write(f"### Top {len(top_movies)} Movies Matching Your Criteria")
+    for _, row in top_movies.iterrows():
+        st.subheader(f"{row['Series_Title']} ({row['Released_Year']})")
+        st.image(row['Poster_Link'], width=150)
+        st.write(f"**IMDb Rating:** {row['IMDB_Rating']}")
+        st.write(f"**Genre:** {row['Genre']}")
+        st.write(f"**Director:** {row['Director']}")
+        st.write(f"**Stars:** {row['Star1']}, {row['Star2']}, {row['Star3']}, {row['Star4']}")
+        st.write("---")
+else:
+    st.write("No movies found matching your criteria.")
