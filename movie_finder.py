@@ -68,12 +68,20 @@ rating_range = st.slider('Select IMDb Rating Range:', 7.0, 10.0, (7.0, 10.0))
 # 4. Star (Optional)
 selected_stars = st.text_input('Enter a Star Name (optional):')
 
+# Debugging: Show what the user selected
+st.write(f"Selected Genres: {selected_genres}")
+st.write(f"Selected Year Range: {year_range}")
+st.write(f"Selected IMDb Rating Range: {rating_range}")
+st.write(f"Selected Star: {selected_stars}")
+
 # Collecting movie data from API
 top_movies = []
 for genre in selected_genres:
     for year in range(year_range[0], year_range[1] + 1):
         # Using the genre as the title search parameter (as an example)
         movie_data = fetch_movie_data(genre, year, api_key)
+        st.write(f"API Response for {genre} ({year}): {movie_data}")  # Debugging: Print the API response
+        
         if movie_data and 'imdbRating' in movie_data and float(movie_data['imdbRating']) >= rating_range[0]:
             # Check if the selected star is in the movie
             if selected_stars:
