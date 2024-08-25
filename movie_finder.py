@@ -92,9 +92,15 @@ top_movies = []
 for genre_name in selected_genres:
     genre_id = genres[genre_name]
     movies = fetch_tmdb_movies(genre_id, year_range, rating_range, tmdb_api_key)
+    
     if selected_stars:
         # Filter by star name if provided
         movies = [movie for movie in movies if selected_stars.lower() in (movie.get('overview', '')).lower()]
+    
+    # Debugging: Print out each movie's title and rating to ensure it's fetched correctly
+    for movie in movies:
+        st.write(f"Fetched movie: {movie['title']} with TMDb rating: {movie.get('vote_average', 'N/A')}")
+    
     top_movies.extend(movies)
     if len(top_movies) >= 3:
         break
@@ -107,6 +113,7 @@ if top_movies:
         poster_path = movie['poster_path']
         if poster_path:
             st.image(f"https://image.tmdb.org/t/p/w500{poster_path}", width=150)
+        
         # Ensure the rating is displayed correctly
         rating = movie.get('vote_average', 'N/A')
         st.write(f"**TMDb Rating:** {rating}")
